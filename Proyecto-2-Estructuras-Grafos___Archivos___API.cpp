@@ -194,6 +194,20 @@ bool insertarGalaxia(string id, string codigo, string nombre,
     return true;
 }
 
+void mostrarGalaxias() {
+    if (primeraGalaxia == NULL) {
+        cout << "No hay galaxias registradas." << endl;
+        return;
+    }
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        cout << actual->id << " | " << actual->codigo << " | "
+             << actual->nombre << " | " << actual->tipo << " | ("
+             << actual->x << ", " << actual->y << ", " << actual->z << ")" << endl;
+        actual = actual->siguiente;
+    }
+}
+
 void liberarGalaxias() {
     while (primeraGalaxia != NULL) {
         Galaxia* borrar = primeraGalaxia;
@@ -205,10 +219,9 @@ void liberarGalaxias() {
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral",
                     "Galaxia de prueba", 0, 0, 0);
-    Galaxia* encontrada = buscarGalaxia("GAL-001");
-    if (encontrada != NULL) {
-        cout << "Galaxia encontrada: " << encontrada->nombre << endl;
-    }
+    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral",
+                    "Segunda galaxia", 10, 5, 2);
+    mostrarGalaxias();
     liberarGalaxias();
     return 0;
 }
