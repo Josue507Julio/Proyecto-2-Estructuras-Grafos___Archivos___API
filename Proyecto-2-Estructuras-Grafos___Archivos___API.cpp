@@ -40,19 +40,23 @@ struct Arco {
 };
 
 struct Galaxia {
-    string id;
-    string codigo;
-    string nombre;
-    string tipo;
-    string descripcion;
-    double x;
-    double y;
-    double z;
+    string id, codigo, nombre, tipo, descripcion;
+    double x, y, z;
     Arco* arcos;
     Galaxia* siguiente;
 };
 
+struct Ruta {
+    string id;
+    Galaxia* origen;
+    Galaxia* destino;
+    double costo;
+    bool dirigida;
+    Ruta* siguiente;
+};
+
 Galaxia* primeraGalaxia = NULL;
+Ruta* primeraRuta = NULL;
 
 string quitarEspaciosExtremos(string texto) {
     int inicio = 0;
@@ -216,12 +220,51 @@ void liberarGalaxias() {
     }
 }
 
+Ruta* buscarRuta(string id) {
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        if (normalizar(actual->id) == normalizar(id)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+bool existeConexion(Galaxia* origen, Galaxia* destino, bool dirigida, Ruta* ignorar = NULL) {
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        if (actual != ignorar) {
+            bool directa = actual->origen == origen && actual->destino == destino;
+            bool inversa = actual->origen == destino && actual->destino == origen;
+            if (directa) return true;
+            if (inversa && (!dirigida || !actual->dirigida)) return true;
+        }
+        actual = actual->siguiente;
+    }
+    return false;
+}
+
+void insertarArco(Galaxia* origen, Galaxia* destino, Ruta* ruta) {
+    Arco* nuevo = new Arco;
+    nuevo->destino = destino;
+    nuevo->ruta = ruta;
+    nuevo->siguiente = NULL;
+    if (origen->arcos == NULL) origen->arcos = nuevo;
+    else {
+        Arco* actual = origen->arcos;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nuevo;
+    }
+}
+
 int main() {
-    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral",
-                    "Galaxia de prueba", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral",
-                    "Segunda galaxia", 10, 5, 2);
-    mostrarGalaxias();
+    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
+    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
+
+    Galaxia* origen = buscarGalaxia("galaxia-1");
+    Galaxia* destino = buscarGalaxia("galaxia-2");
+    cout << "Estructuras de rutas preparadas entre "
+         << origen->nombre << " y " << destino->nombre << "." << endl;
+
     liberarGalaxias();
     return 0;
 }
