@@ -30,6 +30,15 @@ using namespace std;
 
 const double INFINITO = 999999999.0;
 
+struct Ruta;
+struct Galaxia;
+
+struct Arco {
+    Galaxia* destino;
+    Ruta* ruta;
+    Arco* siguiente;
+};
+
 struct Galaxia {
     string id;
     string codigo;
@@ -39,6 +48,7 @@ struct Galaxia {
     double x;
     double y;
     double z;
+    Arco* arcos;
     Galaxia* siguiente;
 };
 
@@ -107,8 +117,98 @@ bool textoInvalido(string texto) {
     return texto == "" || texto.find('|') != string::npos || texto.find(',') != string::npos;
 }
 
+Galaxia* buscarGalaxiaPorId(string id) {
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        if (normalizar(actual->id) == normalizar(id)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+Galaxia* buscarGalaxiaPorCodigo(string codigo) {
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        if (normalizar(actual->codigo) == normalizar(codigo)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+Galaxia* buscarGalaxiaPorNombre(string nombre) {
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        if (normalizar(actual->nombre) == normalizar(nombre)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+Galaxia* buscarGalaxia(string valor) {
+    Galaxia* encontrada = buscarGalaxiaPorId(valor);
+    if (encontrada != NULL) return encontrada;
+    encontrada = buscarGalaxiaPorCodigo(valor);
+    if (encontrada != NULL) return encontrada;
+    return buscarGalaxiaPorNombre(valor);
+}
+
+bool insertarGalaxia(string id, string codigo, string nombre,
+                     string tipo, string descripcion,
+                     double x, double y, double z) {
+    if (textoInvalido(id) || textoInvalido(codigo) || textoInvalido(nombre)) {
+        cout << "Error: existen datos vacios o caracteres no permitidos." << endl;
+        return false;
+    }
+    if (buscarGalaxiaPorId(id) != NULL) {
+        cout << "Error: el ID de galaxia ya esta registrado." << endl;
+        return false;
+    }
+    if (buscarGalaxiaPorCodigo(codigo) != NULL) {
+        cout << "Error: el codigo de galaxia ya esta registrado." << endl;
+        return false;
+    }
+    if (buscarGalaxiaPorNombre(nombre) != NULL) {
+        cout << "Error: el nombre de galaxia ya esta registrado." << endl;
+        return false;
+    }
+
+    Galaxia* nueva = new Galaxia;
+    nueva->id = id;
+    nueva->codigo = codigo;
+    nueva->nombre = nombre;
+    nueva->tipo = tipo;
+    nueva->descripcion = descripcion;
+    nueva->x = x;
+    nueva->y = y;
+    nueva->z = z;
+    nueva->arcos = NULL;
+    nueva->siguiente = NULL;
+
+    if (primeraGalaxia == NULL) primeraGalaxia = nueva;
+    else {
+        Galaxia* actual = primeraGalaxia;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nueva;
+    }
+    cout << "Galaxia insertada correctamente." << endl;
+    return true;
+}
+
+void liberarGalaxias() {
+    while (primeraGalaxia != NULL) {
+        Galaxia* borrar = primeraGalaxia;
+        primeraGalaxia = primeraGalaxia->siguiente;
+        delete borrar;
+    }
+}
+
 int main() {
-    cout << "Sistema de rutas galacticas iniciado." << endl;
-    cout << "Estructura Galaxia y funciones de entrada configuradas." << endl;
+    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral",
+                    "Galaxia de prueba", 0, 0, 0);
+    Galaxia* encontrada = buscarGalaxia("GAL-001");
+    if (encontrada != NULL) {
+        cout << "Galaxia encontrada: " << encontrada->nombre << endl;
+    }
+    liberarGalaxias();
     return 0;
 }
