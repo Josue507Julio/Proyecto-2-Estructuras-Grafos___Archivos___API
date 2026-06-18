@@ -256,15 +256,100 @@ void insertarArco(Galaxia* origen, Galaxia* destino, Ruta* ruta) {
     }
 }
 
+bool insertarRuta(string id, string idOrigen, string idDestino,
+                  double costo, bool dirigida) {
+    Galaxia* origen = buscarGalaxia(idOrigen);
+    Galaxia* destino = buscarGalaxia(idDestino);
+    if (textoInvalido(id)) {
+        cout << "Error: ID de ruta invalido." << endl;
+        return false;
+    }
+    if (buscarRuta(id) != NULL) {
+        cout << "Error: el ID de ruta ya esta registrado." << endl;
+        return false;
+    }
+    if (origen == NULL || destino == NULL || origen == destino) {
+        cout << "Error: origen o destino invalido." << endl;
+        return false;
+    }
+    if (costo <= 0) {
+        cout << "Error: el costo debe ser mayor que cero." << endl;
+        return false;
+    }
+    if (existeConexion(origen, destino, dirigida)) {
+        cout << "Error: ya existe una conexion equivalente." << endl;
+        return false;
+    }
+
+    Ruta* nueva = new Ruta;
+    nueva->id = id;
+    nueva->origen = origen;
+    nueva->destino = destino;
+    nueva->costo = costo;
+    nueva->dirigida = dirigida;
+    nueva->siguiente = NULL;
+    if (primeraRuta == NULL) primeraRuta = nueva;
+    else {
+        Ruta* actual = primeraRuta;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nueva;
+    }
+    insertarArco(origen, destino, nueva);
+    if (!dirigida) insertarArco(destino, origen, nueva);
+    cout << "Ruta insertada correctamente." << endl;
+    return true;
+}
+
+void mostrarRutas() {
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        cout << actual->id << " | " << actual->origen->nombre << " -> "
+             << actual->destino->nombre << " | costo: " << actual->costo
+             << " | " << (actual->dirigida ? "dirigida" : "no dirigida") << endl;
+        actual = actual->siguiente;
+    }
+}
+
+void mostrarRutasDesde(string valor) {
+    Galaxia* galaxia = buscarGalaxia(valor);
+    if (galaxia == NULL) {
+        cout << "Galaxia no encontrada." << endl;
+        return;
+    }
+    Arco* arco = galaxia->arcos;
+    while (arco != NULL) {
+        cout << galaxia->nombre << " -> " << arco->destino->nombre
+             << " | " << arco->ruta->id << " | " << arco->ruta->costo << endl;
+        arco = arco->siguiente;
+    }
+}
+
+void liberarRutasYArcos() {
+    Galaxia* galaxia = primeraGalaxia;
+    while (galaxia != NULL) {
+        while (galaxia->arcos != NULL) {
+            Arco* borrar = galaxia->arcos;
+            galaxia->arcos = galaxia->arcos->siguiente;
+            delete borrar;
+        }
+        galaxia = galaxia->siguiente;
+    }
+    while (primeraRuta != NULL) {
+        Ruta* borrar = primeraRuta;
+        primeraRuta = primeraRuta->siguiente;
+        delete borrar;
+    }
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
     insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-
-    Galaxia* origen = buscarGalaxia("galaxia-1");
-    Galaxia* destino = buscarGalaxia("galaxia-2");
-    cout << "Estructuras de rutas preparadas entre "
-         << origen->nombre << " y " << destino->nombre << "." << endl;
-
+    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 4, 9, 1);
+    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
+    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 8, true);
+    mostrarRutas();
+    mostrarRutasDesde("galaxia-2");
+    liberarRutasYArcos();
     liberarGalaxias();
     return 0;
 }
