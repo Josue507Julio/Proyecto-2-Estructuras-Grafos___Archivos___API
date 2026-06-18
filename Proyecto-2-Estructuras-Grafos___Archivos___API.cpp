@@ -15,7 +15,6 @@
     listas enlazadas y punteros. El grafo se representa mediante una lista
     de galaxias y una sublista de arcos para cada galaxia.
     */
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -33,19 +32,13 @@ const double INFINITO = 999999999.0;
 struct Ruta;
 struct Galaxia;
 
-struct Arco {
-    Galaxia* destino;
-    Ruta* ruta;
-    Arco* siguiente;
-};
-
+struct Arco { Galaxia* destino; Ruta* ruta; Arco* siguiente; };
 struct Galaxia {
     string id, codigo, nombre, tipo, descripcion;
     double x, y, z;
     Arco* arcos;
     Galaxia* siguiente;
 };
-
 struct Ruta {
     string id;
     Galaxia* origen;
@@ -54,9 +47,30 @@ struct Ruta {
     bool dirigida;
     Ruta* siguiente;
 };
+struct Nave { string id, codigo, nombre; Nave* siguiente; };
+struct PasoViaje { Ruta* ruta; string idRuta; PasoViaje* siguiente; };
+struct Viaje {
+    string id, fecha;
+    Nave* nave;
+    Galaxia* origen;
+    Galaxia* destino;
+    double costoTotal;
+    PasoViaje* rutasUsadas;
+    Viaje* siguiente;
+};
+struct ResultadoCamino {
+    bool encontrado;
+    double costoTotal;
+    vector<Galaxia*> galaxias;
+    vector<Ruta*> rutas;
+};
 
 Galaxia* primeraGalaxia = NULL;
 Ruta* primeraRuta = NULL;
+Nave* primeraNave = NULL;
+Viaje* primerViaje = NULL;
+vector<Ruta*> ordenKruskal;
+int cantidadRutasCalculadas = 0;
 
 string quitarEspaciosExtremos(string texto) {
     int inicio = 0;
@@ -341,15 +355,86 @@ void liberarRutasYArcos() {
     }
 }
 
+Nave* buscarNavePorId(string id) {
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        if (normalizar(actual->id) == normalizar(id)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+Nave* buscarNavePorCodigo(string codigo) {
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        if (normalizar(actual->codigo) == normalizar(codigo)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+Nave* buscarNavePorNombre(string nombre) {
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        if (normalizar(actual->nombre) == normalizar(nombre)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+Nave* buscarNave(string valor) {
+    Nave* nave = buscarNavePorId(valor);
+    if (nave != NULL) return nave;
+    nave = buscarNavePorCodigo(valor);
+    if (nave != NULL) return nave;
+    return buscarNavePorNombre(valor);
+}
+Viaje* buscarViaje(string id) {
+    Viaje* actual = primerViaje;
+    while (actual != NULL) {
+        if (normalizar(actual->id) == normalizar(id)) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+bool insertarNave(string id, string codigo, string nombre) {
+    if (textoInvalido(id) || textoInvalido(codigo) || textoInvalido(nombre)) {
+        cout << "Error: datos de nave invalidos." << endl;
+        return false;
+    }
+    if (buscarNavePorId(id) != NULL) { cout << "Error: ID de nave repetido." << endl; return false; }
+    if (buscarNavePorCodigo(codigo) != NULL) { cout << "Error: codigo de nave repetido." << endl; return false; }
+    if (buscarNavePorNombre(nombre) != NULL) { cout << "Error: nombre de nave repetido." << endl; return false; }
+    Nave* nueva = new Nave{id, codigo, nombre, NULL};
+    if (primeraNave == NULL) primeraNave = nueva;
+    else {
+        Nave* actual = primeraNave;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nueva;
+    }
+    cout << "Nave insertada correctamente." << endl;
+    return true;
+}
+
+void mostrarNaves() {
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        cout << actual->id << " | " << actual->codigo
+             << " | " << actual->nombre << endl;
+        actual = actual->siguiente;
+    }
+}
+
+void liberarNaves() {
+    while (primeraNave != NULL) {
+        Nave* borrar = primeraNave;
+        primeraNave = primeraNave->siguiente;
+        delete borrar;
+    }
+}
+
 int main() {
-    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 4, 9, 1);
-    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
-    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 8, true);
-    mostrarRutas();
-    mostrarRutasDesde("galaxia-2");
-    liberarRutasYArcos();
-    liberarGalaxias();
+    insertarNave("nave-1", "NAV-001", "Milano");
+    insertarNave("nave-2", "NAV-002", "Benatar");
+    mostrarNaves();
+    liberarNaves();
     return 0;
 }
