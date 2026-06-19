@@ -16,6 +16,7 @@
     de galaxias y una sublista de arcos para cada galaxia.
     */
 
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -587,16 +588,88 @@ bool eliminarViaje(string id) {
     return true;
 }
 
+vector<Galaxia*> obtenerVectorGalaxias() {
+    vector<Galaxia*> lista;
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        lista.push_back(actual);
+        actual = actual->siguiente;
+    }
+    return lista;
+}
+
+int indiceGalaxia(const vector<Galaxia*>& lista, Galaxia* buscada) {
+    for (int i = 0; i < (int)lista.size(); i++) if (lista[i] == buscada) return i;
+    return -1;
+}
+
+ResultadoCamino dijkstra(string origenId, string destinoId) {
+    ResultadoCamino resultado;
+    resultado.encontrado = false;
+    resultado.costoTotal = 0;
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+    if (origen == NULL || destino == NULL) return resultado;
+
+    vector<Galaxia*> vertices = obtenerVectorGalaxias();
+    int n = (int)vertices.size();
+    vector<double> distancia(n, INFINITO);
+    vector<bool> visitado(n, false);
+    vector<int> anterior(n, -1);
+    vector<Ruta*> rutaAnterior(n, NULL);
+    int inicio = indiceGalaxia(vertices, origen);
+    int final = indiceGalaxia(vertices, destino);
+    distancia[inicio] = 0;
+
+    for (int paso = 0; paso < n; paso++) {
+        int menor = -1;
+        for (int i = 0; i < n; i++) {
+            if (!visitado[i] && (menor == -1 || distancia[i] < distancia[menor])) menor = i;
+        }
+        if (menor == -1 || distancia[menor] == INFINITO) break;
+        visitado[menor] = true;
+        Arco* arco = vertices[menor]->arcos;
+        while (arco != NULL) {
+            int vecino = indiceGalaxia(vertices, arco->destino);
+            double nueva = distancia[menor] + arco->ruta->costo;
+            if (vecino != -1 && !visitado[vecino] && nueva < distancia[vecino]) {
+                distancia[vecino] = nueva;
+                anterior[vecino] = menor;
+                rutaAnterior[vecino] = arco->ruta;
+            }
+            arco = arco->siguiente;
+        }
+    }
+    if (distancia[final] == INFINITO) return resultado;
+
+    vector<Galaxia*> invertidas;
+    vector<Ruta*> rutasInvertidas;
+    int actual = final;
+    while (actual != -1) {
+        invertidas.push_back(vertices[actual]);
+        if (rutaAnterior[actual] != NULL) rutasInvertidas.push_back(rutaAnterior[actual]);
+        actual = anterior[actual];
+    }
+    for (int i = (int)invertidas.size() - 1; i >= 0; i--) resultado.galaxias.push_back(invertidas[i]);
+    for (int i = (int)rutasInvertidas.size() - 1; i >= 0; i--) resultado.rutas.push_back(rutasInvertidas[i]);
+    resultado.encontrado = true;
+    resultado.costoTotal = distancia[final];
+    cantidadRutasCalculadas++;
+    return resultado;
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
     insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
+    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 4, 9, 1);
     insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
-    insertarNave("nave-1", "NAV-001", "Milano");
-    insertarNave("nave-2", "NAV-002", "Benatar");
-    modificarGalaxia("galaxia-2", "GAL-002", "Andromeda M31", "espiral", "Actualizada", 11, 6, 2);
-    modificarNave("nave-2", "NAV-002", "Benatar II");
-    mostrarGalaxias();
-    mostrarNaves();
+    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 8, false);
+
+    ResultadoCamino resultado = dijkstra("galaxia-1", "galaxia-3");
+    if (resultado.encontrado) {
+        cout << "Costo minimo calculado: " << resultado.costoTotal << endl;
+    }
+
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
