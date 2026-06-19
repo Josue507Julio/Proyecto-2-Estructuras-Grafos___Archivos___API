@@ -3,7 +3,7 @@
     Sistema de rutas intergalacticas
 
     Fecha de inicio: 17/06/2026
-    Ultima modificacion: 18/06/2026
+    Ultima modificacion: 19/06/2026
     Integrantes: 
         Yohan Andrey Morera Ramírez     2025105204
         Jaiden Joel Avila Badilla       2025119253
@@ -725,15 +725,63 @@ void mostrarKruskal() {
     cout << "Costo total: " << total << endl;
 }
 
+void guardarGalaxias() {
+    ofstream archivo("galaxias.txt");
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        archivo << actual->id << "|" << actual->codigo << "|" << actual->nombre << "|"
+                << actual->x << "|" << actual->y << "|" << actual->z << "|"
+                << actual->tipo << "|" << actual->descripcion << endl;
+        actual = actual->siguiente;
+    }
+}
+void guardarRutas() {
+    ofstream archivo("rutas.txt");
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        archivo << actual->id << "|" << actual->origen->id << "|" << actual->destino->id
+                << "|" << actual->costo << "|" << actual->dirigida << endl;
+        actual = actual->siguiente;
+    }
+}
+void guardarNaves() {
+    ofstream archivo("naves.txt");
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        archivo << actual->id << "|" << actual->codigo << "|" << actual->nombre << endl;
+        actual = actual->siguiente;
+    }
+}
+void guardarHistorial() {
+    ofstream archivo("historial.txt");
+    Viaje* actual = primerViaje;
+    while (actual != NULL) {
+        archivo << actual->id << "|" << actual->nave->id << "|" << actual->origen->id
+                << "|" << actual->destino->id << "|" << actual->costoTotal << "|"
+                << actual->fecha << "|";
+        PasoViaje* paso = actual->rutasUsadas;
+        while (paso != NULL) {
+            archivo << paso->idRuta;
+            if (paso->siguiente != NULL) archivo << ",";
+            paso = paso->siguiente;
+        }
+        archivo << endl;
+        actual = actual->siguiente;
+    }
+}
+void guardarDatosLocales() {
+    guardarGalaxias(); guardarRutas(); guardarNaves(); guardarHistorial();
+}
+
 int main() {
-    srand((unsigned int)time(NULL));
-    insertarGalaxia("galaxia-1", "GAL-001", "A", "espiral", "", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "B", "espiral", "", 1, 0, 0);
-    insertarGalaxia("galaxia-3", "GAL-003", "C", "espiral", "", 2, 0, 0);
-    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 5, false);
-    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 4, false);
-    insertarRuta("ruta-3", "galaxia-1", "galaxia-3", 12, false);
-    mostrarKruskal();
+    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
+    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
+    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
+    insertarNave("nave-1", "NAV-001", "Milano");
+
+    guardarDatosLocales();
+    cout << "Datos guardados en archivos TXT." << endl;
+
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
