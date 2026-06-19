@@ -658,18 +658,26 @@ ResultadoCamino dijkstra(string origenId, string destinoId) {
     return resultado;
 }
 
+void mostrarResultadoDijkstra(ResultadoCamino resultado) {
+    if (!resultado.encontrado) {
+        cout << "No existe una ruta entre las galaxias." << endl;
+        return;
+    }
+    for (int i = 0; i < (int)resultado.galaxias.size(); i++) {
+        cout << resultado.galaxias[i]->nombre;
+        if (i + 1 < (int)resultado.galaxias.size()) cout << " -> ";
+    }
+    cout << " | costo total: " << resultado.costoTotal << endl;
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
     insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 4, 9, 1);
+    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 5, 9, 3);
     insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
-    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 8, false);
-
-    ResultadoCamino resultado = dijkstra("galaxia-1", "galaxia-3");
-    if (resultado.encontrado) {
-        cout << "Costo minimo calculado: " << resultado.costoTotal << endl;
-    }
-
+    insertarRuta("ruta-2", "galaxia-1", "galaxia-3", 4, false);
+    insertarRuta("ruta-3", "galaxia-3", "galaxia-2", 3, false);
+    mostrarResultadoDijkstra(dijkstra("galaxia-1", "galaxia-2"));
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
