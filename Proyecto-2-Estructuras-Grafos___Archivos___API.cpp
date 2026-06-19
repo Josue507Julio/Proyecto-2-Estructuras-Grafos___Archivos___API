@@ -492,15 +492,70 @@ void liberarNavesYViajes() {
     }
 }
 
+bool rutaUsadaEnHistorial(Ruta* ruta) {
+    Viaje* viaje = primerViaje;
+    while (viaje != NULL) {
+        PasoViaje* paso = viaje->rutasUsadas;
+        while (paso != NULL) {
+            if (paso->ruta == ruta) return true;
+            paso = paso->siguiente;
+        }
+        viaje = viaje->siguiente;
+    }
+    return false;
+}
+
+bool modificarGalaxia(string valor, string nuevoCodigo, string nuevoNombre,
+                      string nuevoTipo, string nuevaDescripcion,
+                      double x, double y, double z) {
+    Galaxia* galaxia = buscarGalaxia(valor);
+    if (galaxia == NULL) return false;
+    Galaxia* codigo = buscarGalaxiaPorCodigo(nuevoCodigo);
+    Galaxia* nombre = buscarGalaxiaPorNombre(nuevoNombre);
+    if (codigo != NULL && codigo != galaxia) {
+        cout << "Error: codigo de galaxia repetido." << endl;
+        return false;
+    }
+    if (nombre != NULL && nombre != galaxia) {
+        cout << "Error: nombre de galaxia repetido." << endl;
+        return false;
+    }
+    galaxia->codigo = nuevoCodigo;
+    galaxia->nombre = nuevoNombre;
+    galaxia->tipo = nuevoTipo;
+    galaxia->descripcion = nuevaDescripcion;
+    galaxia->x = x; galaxia->y = y; galaxia->z = z;
+    return true;
+}
+
+bool modificarNave(string valor, string nuevoCodigo, string nuevoNombre) {
+    Nave* nave = buscarNave(valor);
+    if (nave == NULL) return false;
+    Nave* codigo = buscarNavePorCodigo(nuevoCodigo);
+    Nave* nombre = buscarNavePorNombre(nuevoNombre);
+    if (codigo != NULL && codigo != nave) {
+        cout << "Error: codigo de nave repetido." << endl;
+        return false;
+    }
+    if (nombre != NULL && nombre != nave) {
+        cout << "Error: nombre de nave repetido." << endl;
+        return false;
+    }
+    nave->codigo = nuevoCodigo;
+    nave->nombre = nuevoNombre;
+    return true;
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
     insertarNave("nave-1", "NAV-001", "Milano");
-    Viaje* viaje = insertarViaje("viaje-1", "nave-1", "galaxia-1", "galaxia-2", 12, "16/06/2026");
-    agregarPasoViaje(viaje, buscarRuta("ruta-1"));
+
+    modificarGalaxia("galaxia-1", "GAL-100", "Via Lactea Actualizada",
+                      "espiral", "Registro modificado", 1, 2, 3);
+    modificarNave("nave-1", "NAV-100", "Milano II");
+
+    mostrarGalaxias();
     mostrarNaves();
-    mostrarHistorial();
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
