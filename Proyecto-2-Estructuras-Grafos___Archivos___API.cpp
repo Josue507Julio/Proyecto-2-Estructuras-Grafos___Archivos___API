@@ -3,7 +3,7 @@
     Sistema de rutas intergalacticas
 
     Fecha de inicio: 17/06/2026
-    Ultima modificacion: 17/06/2026
+    Ultima modificacion: 18/06/2026
     Integrantes: 
         Yohan Andrey Morera Ramírez     2025105204
         Jaiden Joel Avila Badilla       2025119253
@@ -15,6 +15,7 @@
     listas enlazadas y punteros. El grafo se representa mediante una lista
     de galaxias y una sublista de arcos para cada galaxia.
     */
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -546,14 +547,54 @@ bool modificarNave(string valor, string nuevoCodigo, string nuevoNombre) {
     return true;
 }
 
+bool modificarRuta(string id, string origenId, string destinoId,
+                   double costo, bool dirigida) {
+    Ruta* ruta = buscarRuta(id);
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+    if (ruta == NULL || origen == NULL || destino == NULL || origen == destino || costo <= 0) return false;
+    if (rutaUsadaEnHistorial(ruta)) {
+        cout << "Error: la ruta aparece en el historial." << endl;
+        return false;
+    }
+    if (existeConexion(origen, destino, dirigida, ruta)) {
+        cout << "Error: conexion repetida." << endl;
+        return false;
+    }
+    ruta->origen = origen;
+    ruta->destino = destino;
+    ruta->costo = costo;
+    ruta->dirigida = dirigida;
+    return true;
+}
+
+bool eliminarViaje(string id) {
+    Viaje* actual = primerViaje;
+    Viaje* anterior = NULL;
+    while (actual != NULL && normalizar(actual->id) != normalizar(id)) {
+        anterior = actual;
+        actual = actual->siguiente;
+    }
+    if (actual == NULL) return false;
+    if (anterior == NULL) primerViaje = actual->siguiente;
+    else anterior->siguiente = actual->siguiente;
+    while (actual->rutasUsadas != NULL) {
+        PasoViaje* paso = actual->rutasUsadas;
+        actual->rutasUsadas = actual->rutasUsadas->siguiente;
+        delete paso;
+    }
+    delete actual;
+    return true;
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
+    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
+    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
     insertarNave("nave-1", "NAV-001", "Milano");
-
-    modificarGalaxia("galaxia-1", "GAL-100", "Via Lactea Actualizada",
-                      "espiral", "Registro modificado", 1, 2, 3);
-    modificarNave("nave-1", "NAV-100", "Milano II");
-
+    insertarNave("nave-2", "NAV-002", "Benatar");
+    modificarGalaxia("galaxia-2", "GAL-002", "Andromeda M31", "espiral", "Actualizada", 11, 6, 2);
+    modificarNave("nave-2", "NAV-002", "Benatar II");
     mostrarGalaxias();
     mostrarNaves();
     liberarNavesYViajes();
