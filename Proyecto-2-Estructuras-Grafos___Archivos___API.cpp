@@ -694,18 +694,46 @@ vector<Ruta*> crearOrdenAleatorioLocal() {
     }
     return rutas;
 }
+vector<Ruta*> kruskalModificado() {
+    vector<Galaxia*> galaxias = obtenerVectorGalaxias();
+    vector<Ruta*> aristas = ordenKruskal.empty() ? crearOrdenAleatorioLocal() : ordenKruskal;
+    vector<Ruta*> arbol;
+    vector<int> padre(galaxias.size());
+    for (int i = 0; i < (int)padre.size(); i++) padre[i] = i;
+    for (int i = 0; i < (int)aristas.size(); i++) {
+        int origen = indiceGalaxia(galaxias, aristas[i]->origen);
+        int destino = indiceGalaxia(galaxias, aristas[i]->destino);
+        if (origen == -1 || destino == -1) continue;
+        int conjuntoOrigen = buscarPadre(padre, origen);
+        int conjuntoDestino = buscarPadre(padre, destino);
+        if (conjuntoOrigen != conjuntoDestino) {
+            arbol.push_back(aristas[i]);
+            unirConjuntos(padre, conjuntoOrigen, conjuntoDestino);
+        }
+        if ((int)arbol.size() == (int)galaxias.size() - 1) break;
+    }
+    return arbol;
+}
+void mostrarKruskal() {
+    vector<Ruta*> arbol = kruskalModificado();
+    double total = 0;
+    for (int i = 0; i < (int)arbol.size(); i++) {
+        cout << arbol[i]->origen->nombre << " -- " << arbol[i]->destino->nombre
+             << " | " << arbol[i]->costo << endl;
+        total += arbol[i]->costo;
+    }
+    cout << "Costo total: " << total << endl;
+}
 
 int main() {
     srand((unsigned int)time(NULL));
-    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-    insertarGalaxia("galaxia-3", "GAL-003", "Triangulo", "espiral", "", 4, 9, 1);
-    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
-    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 8, false);
-
-    vector<Ruta*> orden = crearOrdenAleatorioLocal();
-    cout << "Orden aleatorio preparado con " << orden.size() << " rutas." << endl;
-
+    insertarGalaxia("galaxia-1", "GAL-001", "A", "espiral", "", 0, 0, 0);
+    insertarGalaxia("galaxia-2", "GAL-002", "B", "espiral", "", 1, 0, 0);
+    insertarGalaxia("galaxia-3", "GAL-003", "C", "espiral", "", 2, 0, 0);
+    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 5, false);
+    insertarRuta("ruta-2", "galaxia-2", "galaxia-3", 4, false);
+    insertarRuta("ruta-3", "galaxia-1", "galaxia-3", 12, false);
+    mostrarKruskal();
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
