@@ -773,15 +773,53 @@ void guardarDatosLocales() {
     guardarGalaxias(); guardarRutas(); guardarNaves(); guardarHistorial();
 }
 
+void cargarGalaxiasArchivo() {
+    ifstream archivo("galaxias.txt");
+    string linea;
+    while (getline(archivo, linea)) {
+        stringstream ss(linea);
+        string id, codigo, nombre, x, y, z, tipo, descripcion;
+        getline(ss, id, '|'); getline(ss, codigo, '|'); getline(ss, nombre, '|');
+        getline(ss, x, '|'); getline(ss, y, '|'); getline(ss, z, '|');
+        getline(ss, tipo, '|'); getline(ss, descripcion, '|');
+        insertarGalaxia(id, codigo, nombre, tipo, descripcion,
+                        atof(x.c_str()), atof(y.c_str()), atof(z.c_str()));
+    }
+}
+void cargarRutasArchivo() {
+    ifstream archivo("rutas.txt");
+    string linea;
+    while (getline(archivo, linea)) {
+        stringstream ss(linea);
+        string id, origen, destino, costo, dirigida;
+        getline(ss, id, '|'); getline(ss, origen, '|'); getline(ss, destino, '|');
+        getline(ss, costo, '|'); getline(ss, dirigida, '|');
+        insertarRuta(id, origen, destino, atof(costo.c_str()), atoi(dirigida.c_str()) == 1);
+    }
+}
+void cargarNavesArchivo() {
+    ifstream archivo("naves.txt");
+    string linea;
+    while (getline(archivo, linea)) {
+        stringstream ss(linea);
+        string id, codigo, nombre;
+        getline(ss, id, '|'); getline(ss, codigo, '|'); getline(ss, nombre, '|');
+        insertarNave(id, codigo, nombre);
+    }
+}
+void cargarDatosLocales() {
+    cargarGalaxiasArchivo();
+    cargarRutasArchivo();
+    cargarNavesArchivo();
+}
+
 int main() {
     insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
     insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
     insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
     insertarNave("nave-1", "NAV-001", "Milano");
-
     guardarDatosLocales();
-    cout << "Datos guardados en archivos TXT." << endl;
-
+    cout << "Archivos TXT generados." << endl;
     liberarNavesYViajes();
     liberarRutasYArcos();
     liberarGalaxias();
