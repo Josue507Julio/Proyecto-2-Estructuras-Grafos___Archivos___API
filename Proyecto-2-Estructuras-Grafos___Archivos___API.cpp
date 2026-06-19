@@ -14,6 +14,16 @@
     Las galaxias, rutas, naves y viajes se almacenan con estructuras struct,
     listas enlazadas y punteros. El grafo se representa mediante una lista
     de galaxias y una sublista de arcos para cada galaxia.
+
+        Dependencias exigidas por el proyecto:
+    - libcurl
+    - json.hpp de nlohmann
+
+    Ejecución:
+    1. Abrir una nueva terminal
+    2. En la ruta del proyecto, ejecutar estos comandos:
+        a. g++ -std=c++17 Proyecto-2-Estructuras-Grafos___Archivos___API.cpp -o Proyecto-2-Estructuras-Grafos___Archivos___API.exe -lcurl
+        b. ./Proyecto-2-Estructuras-Grafos___Archivos___API.exe
     */
 
 
@@ -26,10 +36,15 @@
 #include <cstdlib>
 #include <ctime>
 #include <cctype>
+#include <curl/curl.h>
+#include "json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
 const double INFINITO = 999999999.0;
+
+const string URL_BASE = "https://galaxias-mock-api.onrender.com";
 
 struct Ruta;
 struct Galaxia;
@@ -813,15 +828,54 @@ void cargarDatosLocales() {
     cargarNavesArchivo();
 }
 
+size_t guardarRespuesta(void* contenido, size_t tamano, size_t cantidad, void* destino) {
+    size_t total = tamano * cantidad;
+    ((string*)destino)->append((char*)contenido, total);
+    return total;
+}
+
+string consumirEndpoint(string endpoint) {
+    CURL* curl = curl_easy_init();
+    if (curl == NULL) return "";
+    string respuesta = "";
+    string url = URL_BASE + endpoint;
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, guardarRespuesta);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &respuesta);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 90L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "ProyectoGrafos/1.0");
+    CURLcode resultado = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+    if (resultado != CURLE_OK) return "";
+    return respuesta;
+}
+
+json obtenerJson(string endpoint) {
+    string texto = consumirEndpoint(endpoint);
+    if (texto == "") return json();
+    return json::parse(texto, NULL, false);
+}
+
+json obtenerArreglo(json datos, string llave) {
+    if (datos.is_array()) return datos;
+    if (datos.is_object() && datos.contains(llave) && datos[llave].is_array()) return datos[llave];
+    return json::array();
+}
+
 int main() {
-    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
-    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
-    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
-    insertarNave("nave-1", "NAV-001", "Milano");
-    guardarDatosLocales();
-    cout << "Archivos TXT generados." << endl;
-    liberarNavesYViajes();
-    liberarRutasYArcos();
-    liberarGalaxias();
+    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {
+        cout << "No se pudo inicializar libcurl." << endl;
+        return 1;
+    }
+
+    json datos = obtenerJson("/grafo");
+    if (!datos.is_null() && !datos.empty()) {
+        cout << "Conexion con la API realizada correctamente." << endl;
+    } else {
+        cout << "No fue posible obtener datos de la API." << endl;
+    }
+
+    curl_global_cleanup();
     return 0;
 }
