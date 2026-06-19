@@ -414,16 +414,77 @@ bool insertarNave(string id, string codigo, string nombre) {
     return true;
 }
 
+Viaje* insertarViaje(string id, string naveId, string origenId,
+                     string destinoId, double costo, string fecha) {
+    if (buscarViaje(id) != NULL) {
+        cout << "Error: ID de viaje repetido." << endl;
+        return NULL;
+    }
+    Nave* nave = buscarNave(naveId);
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+    if (nave == NULL || origen == NULL || destino == NULL || origen == destino || costo <= 0) {
+        cout << "Error: datos del viaje invalidos." << endl;
+        return NULL;
+    }
+    Viaje* nuevo = new Viaje;
+    nuevo->id = id;
+    nuevo->fecha = fecha;
+    nuevo->nave = nave;
+    nuevo->origen = origen;
+    nuevo->destino = destino;
+    nuevo->costoTotal = costo;
+    nuevo->rutasUsadas = NULL;
+    nuevo->siguiente = NULL;
+    if (primerViaje == NULL) primerViaje = nuevo;
+    else {
+        Viaje* actual = primerViaje;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nuevo;
+    }
+    return nuevo;
+}
+
+void agregarPasoViaje(Viaje* viaje, Ruta* ruta) {
+    if (viaje == NULL || ruta == NULL) return;
+    PasoViaje* nuevo = new PasoViaje{ruta, ruta->id, NULL};
+    if (viaje->rutasUsadas == NULL) viaje->rutasUsadas = nuevo;
+    else {
+        PasoViaje* actual = viaje->rutasUsadas;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nuevo;
+    }
+}
+
 void mostrarNaves() {
     Nave* actual = primeraNave;
     while (actual != NULL) {
-        cout << actual->id << " | " << actual->codigo
-             << " | " << actual->nombre << endl;
+        cout << actual->id << " | " << actual->codigo << " | " << actual->nombre << endl;
         actual = actual->siguiente;
     }
 }
 
-void liberarNaves() {
+void mostrarHistorial() {
+    Viaje* actual = primerViaje;
+    while (actual != NULL) {
+        cout << actual->id << " | " << actual->nave->nombre << " | "
+             << actual->origen->nombre << " -> " << actual->destino->nombre
+             << " | " << actual->costoTotal << " | " << actual->fecha << endl;
+        actual = actual->siguiente;
+    }
+}
+
+void liberarNavesYViajes() {
+    while (primerViaje != NULL) {
+        Viaje* borrar = primerViaje;
+        primerViaje = primerViaje->siguiente;
+        while (borrar->rutasUsadas != NULL) {
+            PasoViaje* paso = borrar->rutasUsadas;
+            borrar->rutasUsadas = borrar->rutasUsadas->siguiente;
+            delete paso;
+        }
+        delete borrar;
+    }
     while (primeraNave != NULL) {
         Nave* borrar = primeraNave;
         primeraNave = primeraNave->siguiente;
@@ -432,9 +493,16 @@ void liberarNaves() {
 }
 
 int main() {
+    insertarGalaxia("galaxia-1", "GAL-001", "Via Lactea", "espiral", "", 0, 0, 0);
+    insertarGalaxia("galaxia-2", "GAL-002", "Andromeda", "espiral", "", 10, 5, 2);
+    insertarRuta("ruta-1", "galaxia-1", "galaxia-2", 12, false);
     insertarNave("nave-1", "NAV-001", "Milano");
-    insertarNave("nave-2", "NAV-002", "Benatar");
+    Viaje* viaje = insertarViaje("viaje-1", "nave-1", "galaxia-1", "galaxia-2", 12, "16/06/2026");
+    agregarPasoViaje(viaje, buscarRuta("ruta-1"));
     mostrarNaves();
-    liberarNaves();
+    mostrarHistorial();
+    liberarNavesYViajes();
+    liberarRutasYArcos();
+    liberarGalaxias();
     return 0;
 }
