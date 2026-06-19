@@ -863,19 +863,60 @@ json obtenerArreglo(json datos, string llave) {
     return json::array();
 }
 
+void cargarGalaxiasJson(json lista) {
+    for (int i = 0; i < (int)lista.size(); i++) {
+        json dato = lista[i];
+        insertarGalaxia(dato.value("id", ""), dato.value("codigo", ""),
+                        dato.value("nombre", ""), dato.value("tipo", "No especificado"),
+                        dato.value("descripcion", ""), dato.value("x", 0.0),
+                        dato.value("y", 0.0), dato.value("z", 0.0));
+    }
+}
+
+void cargarRutasJson(json lista, bool dirigida) {
+    for (int i = 0; i < (int)lista.size(); i++) {
+        json dato = lista[i];
+        insertarRuta(dato.value("id", ""), dato.value("origen_id", ""),
+                     dato.value("destino_id", ""), dato.value("costo", 0.0), dirigida);
+    }
+}
+
+void cargarNavesJson(json lista) {
+    for (int i = 0; i < (int)lista.size(); i++) {
+        json dato = lista[i];
+        insertarNave(dato.value("id", ""), dato.value("codigo", dato.value("id", "")),
+                     dato.value("nombre", "Nave sin nombre"));
+    }
+}
+
+bool cargarDatosApi() {
+    json grafo = obtenerJson("/grafo");
+    if (grafo.is_null() || grafo.is_discarded()) return false;
+    json galaxias = obtenerArreglo(grafo, "nodos");
+    json rutas = obtenerArreglo(grafo, "aristas");
+    bool dirigida = false;
+    if (grafo.contains("meta") && grafo["meta"].contains("es_dirigido"))
+        dirigida = grafo["meta"]["es_dirigido"].get<bool>();
+    cargarGalaxiasJson(galaxias);
+    cargarRutasJson(rutas, dirigida);
+    json naves = obtenerJson("/naves");
+    cargarNavesJson(obtenerArreglo(naves, "naves"));
+    guardarDatosLocales();
+    return primeraGalaxia != NULL && primeraRuta != NULL;
+}
+
 int main() {
-    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {
-        cout << "No se pudo inicializar libcurl." << endl;
-        return 1;
+    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) return 1;
+    cout << "Cargando datos desde la API..." << endl;
+    if (!cargarDatosApi()) {
+        cout << "No fue posible cargar la API. Se usan archivos locales." << endl;
+        cargarDatosLocales();
     }
-
-    json datos = obtenerJson("/grafo");
-    if (!datos.is_null() && !datos.empty()) {
-        cout << "Conexion con la API realizada correctamente." << endl;
-    } else {
-        cout << "No fue posible obtener datos de la API." << endl;
-    }
-
+    mostrarGalaxias();
+    mostrarRutas();
+    liberarNavesYViajes();
+    liberarRutasYArcos();
+    liberarGalaxias();
     curl_global_cleanup();
     return 0;
 }
