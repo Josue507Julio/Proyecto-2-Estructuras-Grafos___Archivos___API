@@ -26,7 +26,6 @@
         b. ./Proyecto-2-Estructuras-Grafos___Archivos___API.exe
     */
 
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -738,6 +737,260 @@ void mostrarKruskal() {
         total += arbol[i]->costo;
     }
     cout << "Costo total: " << total << endl;
+}
+
+void liberarPasos(PasoViaje* paso) {
+    while (paso != NULL) {
+        PasoViaje* borrar = paso;
+        paso = paso->siguiente;
+        delete borrar;
+    }
+}
+
+void agregarPasoHistorico(Viaje* viaje, string idRuta) {
+    if (viaje == NULL || idRuta == "") return;
+
+    PasoViaje* nuevo = new PasoViaje;
+    nuevo->ruta = buscarRuta(idRuta);
+    nuevo->idRuta = idRuta;
+    nuevo->siguiente = NULL;
+
+    if (viaje->rutasUsadas == NULL) viaje->rutasUsadas = nuevo;
+    else {
+        PasoViaje* actual = viaje->rutasUsadas;
+        while (actual->siguiente != NULL) actual = actual->siguiente;
+        actual->siguiente = nuevo;
+    }
+}
+
+void mostrarViajeDetalle(Viaje* viaje) {
+    if (viaje == NULL) return;
+
+    cout << "ID: " << viaje->id
+         << " | Nave: " << viaje->nave->nombre
+         << " | " << viaje->origen->nombre << " -> " << viaje->destino->nombre
+         << " | Costo: " << viaje->costoTotal
+         << " | Fecha: " << viaje->fecha << endl;
+
+    cout << "Rutas utilizadas: ";
+    PasoViaje* paso = viaje->rutasUsadas;
+    if (paso == NULL) cout << "No especificadas";
+
+    while (paso != NULL) {
+        cout << paso->idRuta;
+        if (paso->ruta == NULL) cout << " (historica o inactiva)";
+        if (paso->siguiente != NULL) cout << " -> ";
+        paso = paso->siguiente;
+    }
+    cout << endl;
+}
+
+void mostrarHistorialNave(string valorNave) {
+    Nave* nave = buscarNave(valorNave);
+    if (nave == NULL) {
+        cout << "La nave no existe." << endl;
+        return;
+    }
+
+    bool encontrado = false;
+    Viaje* actual = primerViaje;
+    while (actual != NULL) {
+        if (actual->nave == nave) {
+            mostrarViajeDetalle(actual);
+            encontrado = true;
+        }
+        actual = actual->siguiente;
+    }
+
+    if (!encontrado) cout << "La nave no posee viajes registrados." << endl;
+}
+
+void reconstruirGrafo() {
+    Galaxia* galaxia = primeraGalaxia;
+    while (galaxia != NULL) {
+        while (galaxia->arcos != NULL) {
+            Arco* borrar = galaxia->arcos;
+            galaxia->arcos = galaxia->arcos->siguiente;
+            delete borrar;
+        }
+        galaxia = galaxia->siguiente;
+    }
+
+    Ruta* ruta = primeraRuta;
+    while (ruta != NULL) {
+        insertarArco(ruta->origen, ruta->destino, ruta);
+        if (!ruta->dirigida) insertarArco(ruta->destino, ruta->origen, ruta);
+        ruta = ruta->siguiente;
+    }
+}
+
+bool galaxiaTieneRutas(Galaxia* galaxia) {
+    Ruta* ruta = primeraRuta;
+    while (ruta != NULL) {
+        if (ruta->origen == galaxia || ruta->destino == galaxia) return true;
+        ruta = ruta->siguiente;
+    }
+    return false;
+}
+
+bool galaxiaUsadaEnHistorial(Galaxia* galaxia) {
+    Viaje* viaje = primerViaje;
+    while (viaje != NULL) {
+        if (viaje->origen == galaxia || viaje->destino == galaxia) return true;
+        viaje = viaje->siguiente;
+    }
+    return false;
+}
+
+bool naveTieneViajes(Nave* nave) {
+    Viaje* viaje = primerViaje;
+    while (viaje != NULL) {
+        if (viaje->nave == nave) return true;
+        viaje = viaje->siguiente;
+    }
+    return false;
+}
+
+bool eliminarGalaxia(string valor) {
+    Galaxia* objetivo = buscarGalaxia(valor);
+    if (objetivo == NULL) {
+        cout << "La galaxia no existe." << endl;
+        return false;
+    }
+    if (galaxiaTieneRutas(objetivo)) {
+        cout << "No se puede eliminar: tiene rutas asociadas." << endl;
+        return false;
+    }
+    if (galaxiaUsadaEnHistorial(objetivo)) {
+        cout << "No se puede eliminar: aparece en el historial." << endl;
+        return false;
+    }
+
+    Galaxia* actual = primeraGalaxia;
+    Galaxia* anterior = NULL;
+    while (actual != NULL && actual != objetivo) {
+        anterior = actual;
+        actual = actual->siguiente;
+    }
+
+    if (anterior == NULL) primeraGalaxia = actual->siguiente;
+    else anterior->siguiente = actual->siguiente;
+    delete actual;
+    return true;
+}
+
+bool eliminarRuta(string id) {
+    Ruta* actual = primeraRuta;
+    Ruta* anterior = NULL;
+
+    while (actual != NULL && normalizar(actual->id) != normalizar(id)) {
+        anterior = actual;
+        actual = actual->siguiente;
+    }
+
+    if (actual == NULL) {
+        cout << "La ruta no existe." << endl;
+        return false;
+    }
+    if (rutaUsadaEnHistorial(actual)) {
+        cout << "No se puede eliminar: aparece en el historial." << endl;
+        return false;
+    }
+
+    if (anterior == NULL) primeraRuta = actual->siguiente;
+    else anterior->siguiente = actual->siguiente;
+
+    delete actual;
+    reconstruirGrafo();
+    ordenKruskal.clear();
+    return true;
+}
+
+bool eliminarNave(string valor) {
+    Nave* objetivo = buscarNave(valor);
+    if (objetivo == NULL) {
+        cout << "La nave no existe." << endl;
+        return false;
+    }
+    if (naveTieneViajes(objetivo)) {
+        cout << "No se puede eliminar: posee viajes registrados." << endl;
+        return false;
+    }
+
+    Nave* actual = primeraNave;
+    Nave* anterior = NULL;
+    while (actual != NULL && actual != objetivo) {
+        anterior = actual;
+        actual = actual->siguiente;
+    }
+
+    if (anterior == NULL) primeraNave = actual->siguiente;
+    else anterior->siguiente = actual->siguiente;
+    delete actual;
+    return true;
+}
+
+bool registrarViajePorRutaMinima(string id, string naveId,
+                                 string origenId, string destinoId,
+                                 string fecha) {
+    if (buscarViaje(id) != NULL) {
+        cout << "Error: el ID de viaje ya esta registrado." << endl;
+        return false;
+    }
+
+    Nave* nave = buscarNave(naveId);
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+
+    if (nave == NULL || origen == NULL || destino == NULL) {
+        cout << "La nave o alguna galaxia no existe." << endl;
+        return false;
+    }
+
+    ResultadoCamino resultado = dijkstra(origen->id, destino->id);
+    if (!resultado.encontrado) {
+        cout << "No existe un camino entre las galaxias." << endl;
+        return false;
+    }
+
+    Viaje* nuevo = insertarViaje(id, nave->id, origen->id, destino->id,
+                                 resultado.costoTotal, fecha);
+    if (nuevo == NULL) return false;
+
+    for (int i = 0; i < (int)resultado.rutas.size(); i++) {
+        agregarPasoViaje(nuevo, resultado.rutas[i]);
+    }
+    return true;
+}
+
+bool modificarViajeCompleto(string id, string naveId,
+                            string origenId, string destinoId,
+                            string fecha) {
+    Viaje* viaje = buscarViaje(id);
+    Nave* nave = buscarNave(naveId);
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+
+    if (viaje == NULL || nave == NULL || origen == NULL || destino == NULL) {
+        cout << "No fue posible asociar los datos del viaje." << endl;
+        return false;
+    }
+
+    ResultadoCamino resultado = dijkstra(origen->id, destino->id);
+    if (!resultado.encontrado) return false;
+
+    liberarPasos(viaje->rutasUsadas);
+    viaje->rutasUsadas = NULL;
+    viaje->nave = nave;
+    viaje->origen = origen;
+    viaje->destino = destino;
+    viaje->costoTotal = resultado.costoTotal;
+    viaje->fecha = fecha;
+
+    for (int i = 0; i < (int)resultado.rutas.size(); i++) {
+        agregarPasoViaje(viaje, resultado.rutas[i]);
+    }
+    return true;
 }
 
 void guardarGalaxias() {
