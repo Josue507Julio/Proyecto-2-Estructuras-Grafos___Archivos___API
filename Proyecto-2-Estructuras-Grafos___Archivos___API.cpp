@@ -1158,6 +1158,220 @@ bool cargarDatosApi() {
     return primeraGalaxia != NULL && primeraRuta != NULL;
 }
 
+bool existenArchivosLocalesCompletos() {
+    ifstream galaxias("galaxias.txt");
+    ifstream rutas("rutas.txt");
+    ifstream naves("naves.txt");
+    ifstream historial("historial.txt");
+    return galaxias.good() && rutas.good() && naves.good() && historial.good();
+}
+
+void cargarHistorialArchivo() {
+    ifstream archivo("historial.txt");
+    string linea;
+
+    while (getline(archivo, linea)) {
+        stringstream ss(linea);
+        string id, nave, origen, destino, costo, fecha, rutas;
+
+        getline(ss, id, '|');
+        getline(ss, nave, '|');
+        getline(ss, origen, '|');
+        getline(ss, destino, '|');
+        getline(ss, costo, '|');
+        getline(ss, fecha, '|');
+        getline(ss, rutas, '|');
+
+        Viaje* viaje = insertarViaje(id, nave, origen, destino,
+                                     atof(costo.c_str()), fecha);
+        if (viaje == NULL) continue;
+
+        stringstream lista(rutas);
+        string idRuta;
+        while (getline(lista, idRuta, ',')) {
+            if (idRuta != "") agregarPasoHistorico(viaje, idRuta);
+        }
+    }
+}
+
+void cargarDatosLocalesCompletos() {
+    if (!existenArchivosLocalesCompletos()) {
+        cout << "No existen todos los archivos locales requeridos." << endl;
+        return;
+    }
+
+    cargarGalaxiasArchivo();
+    cargarRutasArchivo();
+    cargarNavesArchivo();
+    cargarHistorialArchivo();
+    cout << "Datos cargados desde archivos locales." << endl;
+}
+
+string jsonATexto(json valor) {
+    if (valor.is_string()) return valor.get<string>();
+    if (valor.is_number_integer()) return to_string(valor.get<long long>());
+    if (valor.is_number_float()) {
+        stringstream ss;
+        ss << valor.get<double>();
+        return ss.str();
+    }
+    if (valor.is_object()) {
+        if (valor.contains("id")) return jsonATexto(valor["id"]);
+        if (valor.contains("codigo")) return jsonATexto(valor["codigo"]);
+        if (valor.contains("nombre")) return jsonATexto(valor["nombre"]);
+    }
+    return "";
+}
+
+string campoTexto(json dato, const vector<string>& llaves) {
+    for (int i = 0; i < (int)llaves.size(); i++) {
+        if (dato.contains(llaves[i]) && !dato[llaves[i]].is_null()) {
+            return jsonATexto(dato[llaves[i]]);
+        }
+    }
+    return "";
+}
+
+double jsonANumero(json valor) {
+    if (valor.is_number()) return valor.get<double>();
+    if (valor.is_string()) return atof(valor.get<string>().c_str());
+    return 0;
+}
+
+double campoNumero(json dato, const vector<string>& llaves) {
+    for (int i = 0; i < (int)llaves.size(); i++) {
+        if (dato.contains(llaves[i]) && !dato[llaves[i]].is_null()) {
+            return jsonANumero(dato[llaves[i]]);
+        }
+    }
+    return 0;
+}
+
+Ruta* buscarRutaEntre(string origenId, string destinoId) {
+    Galaxia* origen = buscarGalaxia(origenId);
+    Galaxia* destino = buscarGalaxia(destinoId);
+    if (origen == NULL || destino == NULL) return NULL;
+
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        bool directa = actual->origen == origen && actual->destino == destino;
+        bool inversa = !actual->dirigida && actual->origen == destino && actual->destino == origen;
+        if (directa || inversa) return actual;
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+void cargarHistorialJsonCompleto(json lista) {
+    int insertados = 0;
+    int omitidos = 0;
+
+    for (int i = 0; i < (int)lista.size(); i++) {
+        json dato = lista[i];
+        string id = campoTexto(dato, {"id", "viaje_id", "viajeId"});
+        string naveId = campoTexto(dato, {"nave_id", "naveId", "nave"});
+        string origenRef = campoTexto(dato, {"origen_id", "origenId", "origen_nombre", "origen"});
+        string destinoRef = campoTexto(dato, {"destino_id", "destinoId", "destino_nombre", "destino"});
+        string fecha = campoTexto(dato, {"fecha", "date", "fecha_viaje"});
+        string rutaId = campoTexto(dato, {"ruta_id", "rutaId", "ruta"});
+        double costo = campoNumero(dato, {"costo_real", "costo", "tiempo", "duracion"});
+
+        Ruta* ruta = buscarRuta(rutaId);
+        if (ruta != NULL) {
+            if (origenRef == "") origenRef = ruta->origen->id;
+            if (destinoRef == "") destinoRef = ruta->destino->id;
+            if (costo <= 0) costo = ruta->costo;
+        }
+
+        Galaxia* origen = buscarGalaxia(origenRef);
+        Galaxia* destino = buscarGalaxia(destinoRef);
+        Nave* nave = buscarNave(naveId);
+
+        if (id == "" || nave == NULL || origen == NULL || destino == NULL || costo <= 0) {
+            omitidos++;
+            continue;
+        }
+
+        Viaje* viaje = insertarViaje(id, nave->id, origen->id, destino->id, costo, fecha);
+        if (viaje == NULL) {
+            omitidos++;
+            continue;
+        }
+
+        if (rutaId != "") agregarPasoHistorico(viaje, rutaId);
+        insertados++;
+    }
+
+    cout << "Viajes de API insertados: " << insertados
+         << " | Omitidos: " << omitidos << endl;
+}
+
+void cargarOrdenKruskalJsonCompleto(json lista) {
+    ordenKruskal.clear();
+
+    for (int i = 0; i < (int)lista.size(); i++) {
+        json dato = lista[i];
+        string idRuta;
+
+        if (dato.is_string()) idRuta = dato.get<string>();
+        else idRuta = campoTexto(dato, {"id", "ruta_id", "rutaId"});
+
+        Ruta* ruta = buscarRuta(idRuta);
+        if (ruta == NULL && dato.is_object()) {
+            string origen = campoTexto(dato, {"origen_id", "origenId", "origen"});
+            string destino = campoTexto(dato, {"destino_id", "destinoId", "destino"});
+            ruta = buscarRutaEntre(origen, destino);
+        }
+
+        if (ruta != NULL) {
+            bool repetida = false;
+            for (int j = 0; j < (int)ordenKruskal.size(); j++) {
+                if (ordenKruskal[j] == ruta) repetida = true;
+            }
+            if (!repetida) ordenKruskal.push_back(ruta);
+        }
+    }
+}
+
+bool cargarDatosApiCompleta() {
+    cout << "Cargando informacion desde la API..." << endl;
+
+    json grafo = obtenerJson("/grafo");
+    if (grafo.is_null() || grafo.is_discarded() || grafo.empty()) return false;
+
+    json galaxias = obtenerArreglo(grafo, "nodos");
+    json rutas = obtenerArreglo(grafo, "aristas");
+    bool dirigida = false;
+
+    if (grafo.contains("meta") && grafo["meta"].is_object() &&
+        grafo["meta"].contains("es_dirigido")) {
+        dirigida = grafo["meta"]["es_dirigido"].get<bool>();
+    }
+
+    cargarGalaxiasJson(galaxias);
+    cargarRutasJson(rutas, dirigida);
+
+    json respuestaNaves = obtenerJson("/naves");
+    json naves = obtenerArreglo(respuestaNaves, "naves");
+    if (naves.size() == 0) naves = obtenerArreglo(respuestaNaves, "data");
+    cargarNavesJson(naves);
+
+    json respuestaHistorial = obtenerJson("/historial");
+    json historial = obtenerArreglo(respuestaHistorial, "historial");
+    if (historial.size() == 0) historial = obtenerArreglo(respuestaHistorial, "viajes");
+    if (historial.size() == 0) historial = obtenerArreglo(respuestaHistorial, "data");
+    cargarHistorialJsonCompleto(historial);
+
+    json respuestaKruskal = obtenerJson("/grafo/kruskal");
+    json kruskal = obtenerArreglo(respuestaKruskal, "aristas");
+    if (kruskal.size() == 0) kruskal = obtenerArreglo(respuestaKruskal, "rutas");
+    if (kruskal.size() == 0) kruskal = respuestaKruskal;
+    if (kruskal.is_array()) cargarOrdenKruskalJsonCompleto(kruskal);
+
+    guardarDatosLocales();
+    return primeraGalaxia != NULL && primeraRuta != NULL;
+}
+
 int main() {
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) return 1;
     cout << "Cargando datos desde la API..." << endl;
