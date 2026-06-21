@@ -3,7 +3,7 @@
     Sistema de rutas intergalacticas
 
     Fecha de inicio: 17/06/2026
-    Ultima modificacion: 19/06/2026
+    Ultima modificacion: 20/06/2026
     Integrantes: 
         Yohan Andrey Morera Ramírez     2025105204
         Jaiden Joel Avila Badilla       2025119253
@@ -1370,6 +1370,156 @@ bool cargarDatosApiCompleta() {
 
     guardarDatosLocales();
     return primeraGalaxia != NULL && primeraRuta != NULL;
+}
+
+int contarGalaxias() {
+    int cantidad = 0;
+    Galaxia* actual = primeraGalaxia;
+    while (actual != NULL) {
+        cantidad++;
+        actual = actual->siguiente;
+    }
+    return cantidad;
+}
+
+int contarRutas() {
+    int cantidad = 0;
+    Ruta* actual = primeraRuta;
+    while (actual != NULL) {
+        cantidad++;
+        actual = actual->siguiente;
+    }
+    return cantidad;
+}
+
+int contarNaves() {
+    int cantidad = 0;
+    Nave* actual = primeraNave;
+    while (actual != NULL) {
+        cantidad++;
+        actual = actual->siguiente;
+    }
+    return cantidad;
+}
+
+int contarViajes() {
+    int cantidad = 0;
+    Viaje* actual = primerViaje;
+    while (actual != NULL) {
+        cantidad++;
+        actual = actual->siguiente;
+    }
+    return cantidad;
+}
+
+int conectividadGalaxia(Galaxia* galaxia) {
+    int cantidad = 0;
+    Arco* arco = galaxia->arcos;
+    while (arco != NULL) {
+        cantidad++;
+        arco = arco->siguiente;
+    }
+    return cantidad;
+}
+
+void reporteRutaMasCorta(string origen, string destino) {
+    ResultadoCamino resultado = dijkstra(origen, destino);
+    if (!resultado.encontrado) {
+        cout << "No existe una ruta para generar el reporte." << endl;
+        return;
+    }
+
+    ofstream archivo("reporte_rutas_cortas.txt", ios::app);
+    archivo << "Ruta: ";
+    for (int i = 0; i < (int)resultado.galaxias.size(); i++) {
+        archivo << resultado.galaxias[i]->nombre;
+        if (i + 1 < (int)resultado.galaxias.size()) archivo << " -> ";
+    }
+
+    archivo << " | Codigos: ";
+    for (int i = 0; i < (int)resultado.rutas.size(); i++) {
+        archivo << resultado.rutas[i]->id;
+        if (i + 1 < (int)resultado.rutas.size()) archivo << ", ";
+    }
+
+    archivo << " | Costo total: " << resultado.costoTotal << endl;
+    cout << "Reporte generado: reporte_rutas_cortas.txt" << endl;
+}
+
+void reporteArbolExpansion() {
+    vector<Ruta*> arbol = kruskalModificado();
+    ofstream archivo("reporte_arbol_expansion.txt");
+    double total = 0;
+
+    archivo << "ARBOL DE EXPANSION - KRUSKAL MODIFICADO" << endl << endl;
+    for (int i = 0; i < (int)arbol.size(); i++) {
+        archivo << arbol[i]->origen->nombre << " -- "
+                << arbol[i]->destino->nombre
+                << " | Costo: " << arbol[i]->costo << endl;
+        total += arbol[i]->costo;
+    }
+    archivo << endl << "Costo total: " << total << endl;
+    cout << "Reporte generado: reporte_arbol_expansion.txt" << endl;
+}
+
+void reporteEstadisticas() {
+    ofstream archivo("reporte_estadisticas.txt");
+    vector<Ruta*> arbol = kruskalModificado();
+    double costoOriginal = 0;
+    double costoOptimizado = 0;
+    int mayorConectividad = -1;
+
+    Ruta* ruta = primeraRuta;
+    while (ruta != NULL) {
+        costoOriginal += ruta->costo;
+        ruta = ruta->siguiente;
+    }
+
+    for (int i = 0; i < (int)arbol.size(); i++) {
+        costoOptimizado += arbol[i]->costo;
+    }
+
+    Galaxia* galaxia = primeraGalaxia;
+    while (galaxia != NULL) {
+        int conexiones = conectividadGalaxia(galaxia);
+        if (conexiones > mayorConectividad) mayorConectividad = conexiones;
+        galaxia = galaxia->siguiente;
+    }
+
+    archivo << "INFORME DE ESTADISTICAS" << endl << endl;
+    archivo << "Cantidad de galaxias: " << contarGalaxias() << endl;
+    archivo << "Cantidad de rutas: " << contarRutas() << endl;
+    archivo << "Cantidad de naves: " << contarNaves() << endl;
+    archivo << "Cantidad de viajes: " << contarViajes() << endl;
+    archivo << "Rutas minimas calculadas: " << cantidadRutasCalculadas << endl;
+
+    archivo << endl << "Galaxias con mayor conectividad:" << endl;
+    galaxia = primeraGalaxia;
+    while (galaxia != NULL) {
+        if (conectividadGalaxia(galaxia) == mayorConectividad) {
+            archivo << "- " << galaxia->nombre << ": "
+                    << mayorConectividad << " conexiones" << endl;
+        }
+        galaxia = galaxia->siguiente;
+    }
+
+    double ahorro = costoOriginal - costoOptimizado;
+    archivo << endl << "Costo de rutas originales: " << costoOriginal << endl;
+    archivo << "Costo del arbol optimizado: " << costoOptimizado << endl;
+    archivo << "Ahorro absoluto: " << ahorro << endl;
+    if (costoOriginal > 0) {
+        archivo << "Reduccion porcentual: "
+                << ahorro * 100.0 / costoOriginal << "%" << endl;
+    }
+
+    cout << "Reporte generado: reporte_estadisticas.txt" << endl;
+}
+
+void liberarMemoriaCompleta() {
+    liberarNavesYViajes();
+    liberarRutasYArcos();
+    liberarGalaxias();
+    ordenKruskal.clear();
 }
 
 int main() {
