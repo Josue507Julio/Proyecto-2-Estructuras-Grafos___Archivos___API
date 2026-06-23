@@ -3,7 +3,7 @@
     Sistema de rutas intergalacticas
 
     Fecha de inicio: 17/06/2026
-    Ultima modificacion: 20/06/2026
+    Ultima modificacion: 22/06/2026
     Integrantes: 
         Yohan Andrey Morera Ramírez     2025105204
         Jaiden Joel Avila Badilla       2025119253
@@ -22,8 +22,8 @@
     Ejecución:
     1. Abrir una nueva terminal
     2. En la ruta del proyecto, ejecutar estos comandos:
-        a. g++ -std=c++17 Pro2_2025105204.cpp -o Pro2_2025105204.exe -lcurl
-        b. ./Pro2_2025105204.exe
+        a. g++ -std=c++17 Proyecto-2-Estructuras-Grafos___Archivos___API.cpp -o Proyecto-2-Estructuras-Grafos___Archivos___API.exe -lcurl
+        b. ./Proyecto-2-Estructuras-Grafos___Archivos___API.exe
 */
 
 #include <iostream>
@@ -3518,9 +3518,8 @@ int main() {
                  << "Se conservaran solamente los registros recibidos de la API." << endl;
         }
     }
-
+    
     menuPrincipal();
-
     guardarDatosLocales();
     liberarMemoria();
     curl_global_cleanup();
